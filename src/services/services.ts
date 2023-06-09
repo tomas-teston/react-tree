@@ -1,23 +1,23 @@
 import { TreeNode } from "../App";
 
 const DELAY_MS = 500;
+const MAX_NESTING_LEVEL = 2;
 
-const getIdRandom = () => Math.floor(Math.random() * 1000);
+const getIdRandom = () => Math.floor(Math.random() * 100000);
 
-const getNodesMock = (numberOfItems: number): Promise<TreeNode[]> => {
-  return new Promise((resolve) => {
+const getNodesMock = (numberOfItems: number, nestingLevel: number): Promise<TreeNode[]> => 
+  new Promise((resolve) => {
       setTimeout(() => 
-        resolve(Array.from(Array(numberOfItems).keys()).map(x => {
+        resolve(Array.from(Array(numberOfItems).keys()).map<TreeNode>(_ => {
           const newId = getIdRandom()
           return {
             name: `Node #${newId}`,
             id: newId,
             downloaded: false,
-            children: []
+            children: nestingLevel < MAX_NESTING_LEVEL ? [] : undefined,
           }
         }))
       , DELAY_MS);
     });
-};
-
+    
 export { getNodesMock };

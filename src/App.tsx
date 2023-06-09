@@ -12,6 +12,7 @@ export type TreeNode = {
   downloaded: boolean;
   id: number;
   name: string;
+  isOpenDefault?: boolean;
 };
 
 export type TreeData = FixedSizeNodeData &
@@ -45,14 +46,13 @@ const getNodeData = (
   node: TreeNode,
   nestingLevel: number,
   download: () => void,
-  isOpenByDefault: boolean = false
 ): TreeWalkerValue<TreeData, NodeMeta> => ({
   data: {
     download,
-    downloaded: node.downloaded,
+    downloaded: !!node.children && node.children.length > 0,
     id: node.id.toString(),
     isLeaf: !node.children,
-    isOpenByDefault: isOpenByDefault && !!node.children && node.children?.length > 0 && node.downloaded,
+    isOpenByDefault: (node.isOpenDefault ?? false) && !!node.children && node.children?.length > 0 && node.downloaded,
     name: node.name,
     nestingLevel,
   },
@@ -141,8 +141,8 @@ const App = ({ defaultTreeNodes }: Props) => {
     }
   }
 
-  const createDownloader = (node: TreeNode) => async (): Promise<void> => {
-    const newNodes = await getNodesMock(NUMBER_OF_NODES_EACH_REQUEST);
+  const createDownloader = (node: TreeNode, nestingLevel: number) => async (): Promise<void> => {
+    const newNodes = await getNodesMock(NUMBER_OF_NODES_EACH_REQUEST, nestingLevel);
 
     setTreeNodes(prev => {
       const prevCopy = [...prev];
@@ -155,7 +155,7 @@ const App = ({ defaultTreeNodes }: Props) => {
     // Step [1]: Define the root node of our tree. There can be one or
     // multiple nodes. 
     for (let i = 0; i < treeNodes.length; i++) {
-      yield getNodeData(treeNodes[i], 0, createDownloader(treeNodes[i]), false);
+      yield getNodeData(treeNodes[i], 0, createDownloader(treeNodes[i], 0));
     }
 
     while (true) {
@@ -170,7 +170,7 @@ const App = ({ defaultTreeNodes }: Props) => {
           yield getNodeData(
             parentMeta.node.children[i],
             parentMeta.nestingLevel + 1,
-            createDownloader(parentMeta.node.children[i])
+            createDownloader(parentMeta.node.children[i], parentMeta.nestingLevel + 1)
           );
         }
       }
