@@ -3,7 +3,6 @@
   font-size: 16px;
   line-height: 24px;
   font-weight: 400;
-  flex: 1;
   overflow: hidden;
 
   font-synthesis: none;
@@ -16,4 +15,19 @@
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  min-height: 100vh;
+}
+
+#root {
+  margin: 10px 0 0 10px;
+  flex: 1 1 0%;
+}
+
+* {
+  box-sizing: border-box;
 }
