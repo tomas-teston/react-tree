@@ -2,7 +2,10 @@ import AutoSizer, { VerticalSize } from 'react-virtualized-auto-sizer';
 import { FixedSizeNodeData, FixedSizeNodePublicState, FixedSizeTree, TreeWalkerValue } from 'react-vtree';
 
 import { ListChildComponentProps } from 'react-window';
+import { getNodesMock } from './services/services';
 import { useState } from 'react';
+
+const NUMBER_OF_NODES_EACH_REQUEST = 5;
 
 export type TreeNode = {
   children?: TreeNode[];
@@ -14,7 +17,7 @@ export type TreeNode = {
 export type TreeData = FixedSizeNodeData &
 {
   downloaded: boolean;
-  download: () => Promise<void>;
+  download: () => void;
   isLeaf: boolean;
   name: string;
   nestingLevel: number;
@@ -33,22 +36,6 @@ export type TreeWalker<TData extends FixedSizeNodeData, TMeta = {}> = () => Gene
   TreeWalkerValue<TData, TMeta>
 >;
 
-
-const createNode = (
-  nodeId: number,
-): TreeNode => {
-  const id = nodeId + 1;
-  const node: TreeNode = {
-    children: [],
-    downloaded: false,
-    id,
-    name: `test-${id}`,
-  };
-
-  return node;
-};
-
-
 type NodeMeta = Readonly<{
   nestingLevel: number;
   node: TreeNode;
@@ -57,7 +44,7 @@ type NodeMeta = Readonly<{
 const getNodeData = (
   node: TreeNode,
   nestingLevel: number,
-  download: () => Promise<void>,
+  download: () => void,
   isOpenByDefault: boolean = false
 ): TreeWalkerValue<TreeData, NodeMeta> => ({
   data: {
@@ -98,6 +85,17 @@ const Node = ({
 >) => {
   const [isLoading, setLoading] = useState(false);
 
+  const handleToogle = async () => {
+    if (downloaded) {
+      await setOpen(!isOpen);
+    } else {
+      setLoading(true);
+      await download();
+      await setOpen(!isOpen);
+      setLoading(false);
+    }
+  }
+
   return (
     <div
       style={{
@@ -111,16 +109,7 @@ const Node = ({
         <div>
           <button
             type="button"
-            onClick={async () => {
-              if (!downloaded) {
-                setLoading(true);
-                await download();
-                await setOpen(!isOpen);
-                setLoading(false);
-              } else {
-                await setOpen(!isOpen);
-              }
-            }}
+            onClick={handleToogle}
           >
             {isLoading ? '⌛' : isOpen ? '-' : '+'}
           </button>
@@ -152,20 +141,15 @@ const App = ({ defaultTreeNodes }: Props) => {
     }
   }
 
-  const createDownloader = (node: TreeNode) => (): Promise<void> =>
-    new Promise((resolve) => {
-      setTimeout(() => {
-        const newNode = createNode(node.id);
+  const createDownloader = (node: TreeNode) => async (): Promise<void> => {
+    const newNodes = await getNodesMock(NUMBER_OF_NODES_EACH_REQUEST);
 
-        setTreeNodes(prev => {
-          const prevCopy = [...prev];
-          insertNodes([newNode], node.id, prevCopy);
-          return prevCopy;
-        });
-
-        resolve();
-      }, 500);
+    setTreeNodes(prev => {
+      const prevCopy = [...prev];
+      insertNodes(newNodes, node.id, prevCopy);
+      return prevCopy;
     });
+  }
 
   function* treeWalker(): ReturnType<TreeWalker<TreeData, NodeMeta>> {
     // Step [1]: Define the root node of our tree. There can be one or
@@ -173,7 +157,6 @@ const App = ({ defaultTreeNodes }: Props) => {
     for (let i = 0; i < treeNodes.length; i++) {
       yield getNodeData(treeNodes[i], 0, createDownloader(treeNodes[i]), false);
     }
-
 
     while (true) {
       // Step [2]: Get the parent component back. It will be the object
