@@ -1,4 +1,4 @@
-import { TreeNode } from "../App";
+import { TreeNode } from "../tree/Tree";
 
 const DELAY_MS = 500;
 const MAX_NESTING_LEVEL = 2;
